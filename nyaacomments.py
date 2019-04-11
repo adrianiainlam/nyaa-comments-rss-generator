@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Nyaa Comments RSS Generator
-# Copyright (c) 2018 Adrian I Lam <me@adrianiainlam.tk>
+# Copyright (c) 2019 Adrian I Lam <spam@adrianiainlam.tk> s/spam/me/
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -24,12 +24,7 @@
 
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingMixIn
-import threading
-
 import datetime
-
-
 from feedgen.feed import FeedGenerator
 import AdvancedHTMLParser
 import requests
@@ -62,6 +57,13 @@ Bug reports welcome at <me@adrianiainlam.tk>, or on
 IMPORTANT: Please avoid updating your feeds too often. I don't mind having
 my server flooded, but the nyaa.si guys certainly might.
 
+UPDATE: (2019-04-11) Recently, Nyaa has been serving HTTP 429 (Too Many
+Requests). I've thus removed threading support, so that my server only
+sends them one request at a time. Depending on network latency, this
+may cause your RSS client to report request timeouts, but I can't think
+of easy ways to fix this. Running this script locally (see GitHub link
+above) may help.
+
 #nyaa-dev@Rizon, 2018-02-08T23:22:36Z
 <ail30> hi, nyaa devs / host. I'm the one who recently added a feature
         request for comment RSS, which was rejected. I'm wondering if you
@@ -73,7 +75,7 @@ my server flooded, but the nyaa.si guys certainly might.
             care.
 <ail30> ok thank you :)
 ''', 'utf-8'))
-    
+
     else:
       sukebei = False
       try:
@@ -88,21 +90,23 @@ my server flooded, but the nyaa.si guys certainly might.
         self.end_headers()
         self.wfile.write(bytes('Error: Not a valid torrent number', 'utf-8'))
         return
-        
+
+
+      self.send_response(200)
+
       if sukebei:
         url = "https://sukebei.nyaa.si/view/" + str(nyaaid)
       else:
         url = "https://nyaa.si/view/" + str(nyaaid)
-      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"
+      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
       req = requests.get(url, headers={"user-agent": useragent})
 
       if req.status_code != 200:
         # return error page with upstream error code
-        self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(bytes('Nyaa returns HTTP status ' + str(req.status_code), 'utf-8'))
-        
+
       else:
         parser = AdvancedHTMLParser.AdvancedHTMLParser()
         parser.parseStr(req.text)
@@ -114,7 +118,7 @@ my server flooded, but the nyaa.si guys certainly might.
         fg.title('Comments for ' + htmltitle)
         fg.id(url)
         fg.link(href='https://nyaacomments.tk' + self.path, rel='self')
-    
+
         i = 1
         timestamp = None
         while True:
@@ -136,8 +140,8 @@ my server flooded, but the nyaa.si guys certainly might.
           fe.pubdate(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
           fe.updated(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
           fe.link(href=link, rel='alternate')
-          fe.content(content, type='html')          
-          
+          fe.content(content, type='html')
+
           i = i + 1
 
 
@@ -145,10 +149,7 @@ my server flooded, but the nyaa.si guys certainly might.
         if timestamp is not None:
           fg.updated(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
         #print(fg.atom_str(pretty=True).decode('utf-8'))
-        
-        
 
-        self.send_response(200)
         self.send_header('Content-type', 'application/atom+xml')
         self.end_headers()
 
@@ -157,11 +158,6 @@ my server flooded, but the nyaa.si guys certainly might.
         return
 
 
-
-
-class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    pass
-
 if __name__ == '__main__':
-    server = ThreadedHTTPServer(('localhost', 2800), NyaaComments)
+    server = HTTPServer(('localhost', 2800), NyaaComments)
     server.serve_forever()

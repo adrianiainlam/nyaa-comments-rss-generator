@@ -54,8 +54,9 @@ To use:
 Bug reports welcome at <me@adrianiainlam.tk>, or on
 <https://github.com/adrianiainlam/nyaa-comments-rss-generator>.
 
-IMPORTANT: Please avoid updating your feeds too often. I don't mind having
-my server flooded, but the nyaa.si guys certainly might.
+IMPORTANT: Please avoid updating your feeds too often. If you really
+need to parse the feeds often, consider running this script locally
+(see GitHub link above).
 
 UPDATE: (2019-04-11) Recently, Nyaa has been serving HTTP 429 (Too Many
 Requests). I've thus removed threading support, so that my server only
@@ -63,17 +64,6 @@ sends them one request at a time. Depending on network latency, this
 may cause your RSS client to report request timeouts, but I can't think
 of easy ways to fix this. Running this script locally (see GitHub link
 above) may help.
-
-#nyaa-dev@Rizon, 2018-02-08T23:22:36Z
-<ail30> hi, nyaa devs / host. I'm the one who recently added a feature
-        request for comment RSS, which was rejected. I'm wondering if you
-        guys would be okay if I write my own (external) feed generator?
-        Or would you guys not be happy with a bot crawling your site?
-<@Koala> generally speaking, if we don't notice the bot, we don't care.
-         Just make sure it doesn't spam the site with requests.
-<~Aureolin> As long as you don't hit any sort of rate limiting we don't
-            care.
-<ail30> ok thank you :)
 ''', 'utf-8'))
 
     else:
@@ -91,15 +81,14 @@ above) may help.
         self.wfile.write(bytes('Error: Not a valid torrent number', 'utf-8'))
         return
 
-
-      self.send_response(200)
-
       if sukebei:
         url = "https://sukebei.nyaa.si/view/" + str(nyaaid)
       else:
         url = "https://nyaa.si/view/" + str(nyaaid)
-      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
       req = requests.get(url, headers={"user-agent": useragent})
+
+      self.send_response(req.status_code)
 
       if req.status_code != 200:
         # return error page with upstream error code
@@ -110,7 +99,6 @@ above) may help.
       else:
         parser = AdvancedHTMLParser.AdvancedHTMLParser()
         parser.parseStr(req.text)
-
 
         fg = FeedGenerator()
         fg.link(href=url, rel='alternate')
@@ -137,7 +125,7 @@ above) may help.
           fe.id(link)
           fe.title('Comment by ' + author + ' on ' + htmltitle)
           fe.author({'name': author})
-          fe.pubdate(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
+          fe.pubDate(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
           fe.updated(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
           fe.link(href=link, rel='alternate')
           fe.content(content, type='html')
@@ -148,7 +136,6 @@ above) may help.
         #set feed last update time to publish time of last comment
         if timestamp is not None:
           fg.updated(datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc))
-        #print(fg.atom_str(pretty=True).decode('utf-8'))
 
         self.send_header('Content-type', 'application/atom+xml')
         self.end_headers()

@@ -48,11 +48,11 @@ To use:
     For example, https://nyaa.si/view/1002779 -> number is 1002779
   - Your feed URL is https://nyaacomments.tk/1002779
  For Sukebei.nyaa:
-  Append 's' before the number
+  Prepend 's' before the number
     For example, https://nyaacomments.tk/s1002779
 
-Bug reports welcome at <me@adrianiainlam.tk>, or on
-<https://github.com/adrianiainlam/nyaa-comments-rss-generator>.
+Bug reports welcome at <spam@adrianiainlam.tk> (replace "spam" with "me"),
+or on <https://github.com/adrianiainlam/nyaa-comments-rss-generator>.
 
 IMPORTANT: Please avoid updating your feeds too often. If you really
 need to parse the feeds often, consider running this script locally
@@ -85,7 +85,7 @@ above) may help.
         url = "https://sukebei.nyaa.si/view/" + str(nyaaid)
       else:
         url = "https://nyaa.si/view/" + str(nyaaid)
-      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
+      useragent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0"
       req = requests.get(url, headers={"user-agent": useragent})
 
       self.send_response(req.status_code)
